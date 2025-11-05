@@ -80,7 +80,7 @@ YOUR_USERNAME/YOUR_PASSWORD@oracle.scs.ryerson.ca:1521/orcl
 /create_tables.sh
 /populate_tables.sh
 /query_tables.sh
-/CPS510_A5_Full.sql
+/ecm.sql
 /README.md
 ```
 
