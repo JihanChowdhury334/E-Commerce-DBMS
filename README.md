@@ -92,17 +92,8 @@ The database structure supports CRUD operations, reporting, analytics, and futur
 ## ✅ Repository Structure
 
 ```
-/CPS510_A5_Full.sql       # Full combined SQL script
+/ecm.sql       # Full combined SQL script
 /README.md                # Project documentation
-```
-
----
-
-## ✅ Author
-Developed by **Jihan Chowdhury** (Group 57)  
-Toronto Metropolitan University – CPS510
-
----
 
 ## ✅ License
 Released under the **MIT License**.
