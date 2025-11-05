@@ -1,6 +1,6 @@
-# 📦 CPS510 A5 – E-Commerce Database System
+# 📦 E-Commerce Database System
 
-This project implements a complete **E-Commerce Database System** for CPS510 using **Oracle SQL**.  
+This project implements a complete **E-Commerce Database System** using **Oracle SQL**.  
 It includes the full schema, data population, views, and advanced analytical queries.  
 A single unified SQL file is provided for clean deployment.
 
