@@ -80,10 +80,7 @@ CPS510_A5_Full.sql
 
 ## ✅ Future Expansion
 
-This project is designed so it can be extended into a real application using:
-- A **Java** frontend (JDBC interface)  
-- A **Python** application (Flask / FastAPI + cx_Oracle)  
-- A **Full Web App** (Node.js / React / Spring Boot)  
+Future versions of this project may include a Java, Python, or full web-based interface — or even all three — depending on the chosen implementation path.
 
 The database structure supports CRUD operations, reporting, analytics, and future transaction logging.
 
