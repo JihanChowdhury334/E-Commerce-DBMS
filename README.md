@@ -1,4 +1,4 @@
-# 🖥️ CPS510 E‑Commerce DBMS — Oracle SQL + Unix Shell Automation
+# 🖥️ E‑Commerce DBMS — Oracle SQL + Unix Shell Automation
 
 This project implements a complete **E‑Commerce Database Management System** using **Oracle SQL**, fully automated with **Unix Shell scripting**.  
 It demonstrates end‑to‑end database lifecycle management — including table creation, population, teardown, and advanced analytics — all driven by executable `.sh` scripts.
