@@ -1,70 +1,96 @@
-# CPS510 A9 - SETUP AND EXECUTION GUIDE
+# 🖥️ E‑Commerce DBMS — Oracle SQL + Unix Shell Automation
 
-## 1. Accessing the Webdev Server
+This project implements a complete **E‑Commerce Database Management System** using **Oracle SQL**, fully automated with **Unix Shell scripting**.  
+It demonstrates end‑to‑end database lifecycle management — including table creation, population, teardown, and advanced analytics — all driven by executable `.sh` scripts.
 
-1. Open MobaXterm
-2. Select: Session → SSH
-3. Remote host: webdev.scs.ryerson.ca
-4. Username: your_username
-5. Click OK and enter password when prompted
+This repo also includes a unified SQL file and modular shell scripts, and is structured for future expansion into a **Java**, **Python**, or **full web-based interface** using the same backend DBMS.
 
-## 2. Creating Directory Structure
+---
 
-Create the webdev directory if it doesn't exist, then create a9 folder inside:
+## ✅ Key Features
+
+### **🗄️ Full Relational Database Schema**
+- Users, Staff, Students  
+- Products & Inventory  
+- Orders, Order Items  
+- Payments, Reports, Reviews  
+- Return Requests  
+- Normalized design with PKs, FKs, CHECK constraints, and referential integrity.
+
+### **🔁 Automated DB Lifecycle (Unix Shell Scripts)**
+Each operation is executed through dedicated `.sh` scripts:
+
+| Script | Purpose |
+|--------|---------|
+| `drop_tables.sh` | Safely removes all tables in dependency order |
+| `create_tables.sh` | Builds the full relational schema |
+| `populate_tables.sh` | Inserts sample data + creates 3 analytical views |
+| `query_tables.sh` | Runs analytics, summaries, joins, and advanced SQL |
+| `menu.sh` | Interactive terminal menu to run the entire system |
+
+### **📊 Advanced SQL Queries Included**
+- Aggregation & HAVING  
+- EXISTS subqueries  
+- MINUS & UNION  
+- Revenue analytics  
+- Top‑rated product summary  
+- Staff performance reports  
+
+### **🏗️ Future Extensions**
+The system is designed to be easily extended into:
+- **Java Application** (JDBC interface)  
+- **Python Backend** (Flask / FastAPI + cx_Oracle)  
+- **Web App** (React/Node/Spring Boot)  
+
+A clean DBMS foundation ready for full-stack use.
+
+---
+
+## ✅ How to Use
+
+### **1. Make scripts executable**
+```bash
+chmod +x *.sh
 ```
-mkdir -p ~/webdev/a9
-cd ~/webdev/a9
+
+### **2. Run the interactive menu**
+```bash
+bash menu.sh
 ```
 
-Upload all project files to this directory.
-
-Or just drag and drop this entire a9 folder into the webdev directory.
-
-## 3. Permission Settings
-
-From inside the a9 directory:
-
-Directories:
-```
-chmod 755 .
-chmod 755 tables
-chmod 755 queries
+### **3. Run operations manually**
+```bash
+bash drop_tables.sh
+bash create_tables.sh
+bash populate_tables.sh
+bash query_tables.sh
 ```
 
-PHP files:
+You must update the Oracle login string in each script:
 ```
-chmod 644 *.php
-chmod 644 tables/*.php
-chmod 644 queries/*.php
+YOUR_USERNAME/YOUR_PASSWORD@oracle.scs.ryerson.ca:1521/orcl
 ```
 
-## 4. Database Configuration
+---
 
-Edit `.env` file with your Oracle credentials:
+## ✅ Repository Structure
 ```
-DB_USERNAME=your_username
-DB_PASSWORD=your_password
-```
-
-## 5. Running the Application
-
-Open browser and navigate to:
-```
-https://webdev.scs.ryerson.ca/~your_username/a9/
+/menu.sh
+/drop_tables.sh
+/create_tables.sh
+/populate_tables.sh
+/query_tables.sh
+/ecm.sql
+/README.md
 ```
 
-## 6. Initializing the Database
+---
 
-Recommended order for first-time setup:
+## ✅ Author  
+**Jihan Chowdhury**  
+Toronto Metropolitan University — Computer Engineering (Software Option)
 
-1. Drop Tables
-2. Create Tables
-3. Populate Tables
+---
 
-Each page displays confirmation messages when operations complete.
-
-## 7. Testing
-
-- CRUD pages allow add, edit, delete, and search operations
-- Query pages return joined and filtered results
-- All tables enforce referential integrity
+## ✅ License  
+Released under the **MIT License**.
