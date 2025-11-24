@@ -7,6 +7,10 @@
 [![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white)](https://developer.mozilla.org/en-US/docs/Web/HTML)
 [![CSS3](https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=white)](https://developer.mozilla.org/en-US/docs/Web/CSS)
 
+<video width="100%" controls>
+  <source src="https://raw.githubusercontent.com/JihanChowdhury334/E-Commerce-DBMS/main/screenshots/Loom%20Message%20-%2024%20November%202025%20(1).mp4" type="video/mp4">
+</video>
+
 > **Production-ready** e-commerce database system demonstrating enterprise-level database design, full CRUD operations, and advanced SQL analytics. Built with dual interfaces: modern web UI and automated Unix shell scripts.
 
 ---
