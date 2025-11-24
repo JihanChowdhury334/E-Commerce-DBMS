@@ -1,0 +1,894 @@
+================================================================================
+CPS510 A9 - CODE SNIPPETS FOR SCREENSHOTS
+================================================================================
+
+================================================================================
+1. HOME PAGE (index.php)
+================================================================================
+
+Key Features:
+- Main navigation menu
+- Links to all database operations
+- 11 tables schema overview
+
+Relevant Code:
+-------------
+<?php
+/**
+ * CPS510 A9 - Group 57 - Main Menu
+ * Complete E-Commerce Database Management System
+ */
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>CPS510 A9 - E-Commerce Database</title>
+</head>
+<body>
+    <div class="container">
+        <h1>🛒 E-Commerce Database Management</h1>
+        <p class="subtitle">CPS510 Assignment 9 - Group 57</p>
+        
+        <div class="schema-info">
+            <h3>📊 Database Schema</h3>
+            <p><strong>11 Tables</strong>: Users, Department, Staff, Student, Product, Orders, Order_Product, Payment, Report, Review, ReturnRequest</p>
+            <p><strong>3 Views</strong>: Staff Report Summary, Top Rated Products, Sales Summary</p>
+            <p><strong>Normalization</strong>: 3NF/BCNF compliant</p>
+        </div>
+        
+        <!-- Database Operations -->
+        <div class="menu-section">
+            <h2>📊 Database Operations</h2>
+            <div class="menu-grid">
+                <a href="create_tables.php">➕ Create Tables</a>
+                <a href="drop_tables.php">❌ Drop Tables</a>
+                <a href="populate.php">📝 Populate Tables</a>
+            </div>
+        </div>
+        
+        <!-- Table Management -->
+        <div class="menu-section">
+            <h2>🗂️ Manage Tables (CRUD Operations)</h2>
+            <div class="menu-grid">
+                <a href="tables/users.php">👥 Manage Users</a>
+                <a href="tables/staff.php">👔 Manage Staff</a>
+                <a href="tables/students.php">🎓 Manage Students</a>
+                <a href="tables/products.php">📦 Manage Products</a>
+                <a href="tables/orders.php">🛍️ Manage Orders</a>
+                <a href="tables/payments.php">💳 Manage Payments</a>
+                <a href="tables/reviews.php">⭐ Manage Reviews</a>
+                <a href="tables/returns.php">🔄 Manage Returns</a>
+            </div>
+        </div>
+        
+        <!-- Query Execution -->
+        <div class="menu-section">
+            <h2>🔍 Analytical Queries</h2>
+            <div class="menu-grid">
+                <a href="queries/query1.php">📊 Query 1: Order Details (JOIN)</a>
+                <a href="queries/query2.php">💰 Query 2: Sales by Product (Aggregation)</a>
+                <a href="queries/query3.php">🎯 Query 3: Top Customers (Subquery)</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+
+
+================================================================================
+2. CREATE TABLES PAGE (create_tables.php)
+================================================================================
+
+Key Features:
+- Creates 11 normalized tables
+- Creates 3 views
+- Handles duplicate table errors
+
+Relevant Code:
+-------------
+<?php
+require_once 'config.php';
+
+$conn = getDBConnection();
+$messages = [];
+
+// Table 1: USERS
+$sql_users = "
+CREATE TABLE Users (
+    UserID NUMBER PRIMARY KEY,
+    FirstName VARCHAR2(50) NOT NULL,
+    LastName VARCHAR2(50) NOT NULL,
+    Email VARCHAR2(100) UNIQUE NOT NULL,
+    Phone VARCHAR2(15),
+    Role VARCHAR2(20) CHECK (Role IN ('Student','Staff'))
+)";
+
+// Table 2: DEPARTMENT
+$sql_department = "
+CREATE TABLE Department (
+    Department VARCHAR2(50) PRIMARY KEY,
+    Salary NUMBER(10,2) CHECK (Salary >= 0)
+)";
+
+// Table 3: STAFF (with foreign keys)
+$sql_staff = "
+CREATE TABLE Staff (
+    StaffID NUMBER PRIMARY KEY,
+    Department VARCHAR2(50) NOT NULL,
+    Position VARCHAR2(50),
+    HireDate DATE DEFAULT SYSDATE,
+    CONSTRAINT fk_staff_user FOREIGN KEY (StaffID)
+        REFERENCES Users(UserID) ON DELETE CASCADE,
+    CONSTRAINT fk_staff_department FOREIGN KEY (Department)
+        REFERENCES Department(Department)
+)";
+
+// ... (similar for all 11 tables)
+
+// Execute table creation
+$tables = [
+    'Users' => $sql_users,
+    'Department' => $sql_department,
+    'Staff' => $sql_staff,
+    // ... all tables
+];
+
+foreach ($tables as $name => $sql) {
+    $stmt = oci_parse($conn, $sql);
+    if (@oci_execute($stmt)) {
+        $messages[] = ['type' => 'success', 'text' => "✓ Table $name created successfully"];
+    } else {
+        $error = oci_error($stmt);
+        if ($error['code'] == 955) {
+            $messages[] = ['type' => 'info', 'text' => "ℹ Table $name already exists"];
+        }
+    }
+}
+
+// Create views
+$sql_view1 = "
+CREATE OR REPLACE VIEW Staff_Report_Summary AS
+SELECT s.StaffID, u.FirstName || ' ' || u.LastName AS StaffName,
+       COUNT(r.ReportID) AS ReportCount
+FROM Staff s
+JOIN Users u ON s.StaffID = u.UserID
+LEFT JOIN Report r ON s.StaffID = r.StaffID
+GROUP BY s.StaffID, u.FirstName, u.LastName";
+?>
+
+Display:
+<h1>📊 Create Database Tables</h1>
+<div class="stats">
+    <h3>Schema Summary</h3>
+    <p><strong>11 Tables</strong> + <strong>3 Views</strong> created</p>
+</div>
+<?php foreach ($messages as $message): ?>
+    <div class="message <?php echo $message['type']; ?>">
+        <?php echo htmlspecialchars($message['text']); ?>
+    </div>
+<?php endforeach; ?>
+
+
+================================================================================
+3. DROP TABLES PAGE (drop_tables.php)
+================================================================================
+
+Key Features:
+- Drops all tables in correct order
+- CASCADE CONSTRAINTS to handle foreign keys
+- Drops views first, then tables
+
+Relevant Code:
+-------------
+<?php
+require_once 'config.php';
+
+$conn = getDBConnection();
+$messages = [];
+
+// Drop views first
+$views = ['Staff_Report_Summary', 'VW_TOP_RATED_PRODUCTS', 'VW_SALES_SUMMARY'];
+foreach ($views as $view) {
+    $sql = "DROP VIEW $view";
+    $stmt = oci_parse($conn, $sql);
+    if (@oci_execute($stmt)) {
+        $messages[] = ['type' => 'success', 'text' => "✓ View $view dropped successfully"];
+    } else {
+        $error = oci_error($stmt);
+        if ($error['code'] == 942) {
+            $messages[] = ['type' => 'info', 'text' => "ℹ View $view does not exist"];
+        }
+    }
+}
+
+// Drop tables in reverse order (children first, parents last)
+$tables = [
+    'ReturnRequest',
+    'Review',
+    'Report',
+    'Payment',
+    'Order_Product',
+    'Orders',
+    'Product',
+    'Student',
+    'Staff',
+    'Department',
+    'Users'
+];
+
+foreach ($tables as $table) {
+    $sql = "DROP TABLE $table CASCADE CONSTRAINTS";
+    $stmt = oci_parse($conn, $sql);
+    if (@oci_execute($stmt)) {
+        $messages[] = ['type' => 'success', 'text' => "✓ Table $table dropped successfully"];
+    } else {
+        $error = oci_error($stmt);
+        if ($error['code'] == 942) {
+            $messages[] = ['type' => 'info', 'text' => "ℹ Table $table does not exist"];
+        }
+    }
+}
+?>
+
+Display:
+<h1>❌ Drop All Tables</h1>
+<div class="warning">
+    <strong>⚠️ Warning:</strong> All tables and data have been removed!
+</div>
+
+
+================================================================================
+4. POPULATE TABLES PAGE (populate.php)
+================================================================================
+
+Key Features:
+- Inserts sample data into all 11 tables
+- Maintains referential integrity
+- Handles duplicate records gracefully
+
+Relevant Code:
+-------------
+<?php
+require_once 'config.php';
+
+$conn = getDBConnection();
+$totalInserted = 0;
+$alreadyExists = 0;
+
+// 1. Insert Users (must be first - no dependencies)
+$users_data = [
+    "INSERT INTO Users VALUES (1, 'John', 'Doe', 'john.doe@torontomu.ca', '416-555-0001', 'Student')",
+    "INSERT INTO Users VALUES (2, 'Jane', 'Smith', 'jane.smith@torontomu.ca', '416-555-0002', 'Staff')",
+    "INSERT INTO Users VALUES (3, 'Bob', 'Johnson', 'bob.j@torontomu.ca', '416-555-0003', 'Student')",
+    // ... more users
+];
+
+foreach ($users_data as $sql) {
+    $stmt = oci_parse($conn, $sql);
+    if (@oci_execute($stmt)) {
+        $totalInserted++;
+    } else {
+        $alreadyExists++;
+    }
+}
+
+// 2. Insert Department
+$dept_data = [
+    "INSERT INTO Department VALUES ('Computer Science', 75000.00)",
+    "INSERT INTO Department VALUES ('Information Technology', 70000.00)",
+    // ... more departments
+];
+
+// 3. Insert Staff (depends on Users, Department)
+$staff_data = [
+    "INSERT INTO Staff VALUES (2, 'Computer Science', 'Professor', TO_DATE('2020-09-01', 'YYYY-MM-DD'))",
+    // ... more staff
+];
+
+// 4. Insert Students
+$student_data = [
+    "INSERT INTO Student VALUES (1, 'Computer Science', 3, 3.5)",
+    // ... more students
+];
+
+// 5. Insert Products
+$product_data = [
+    "INSERT INTO Product VALUES (101, 'Laptop Dell XPS 13', 'High-performance ultrabook', 1299.99, 15)",
+    // ... more products
+];
+
+// 6. Insert Orders
+$orders_data = [
+    "INSERT INTO Orders VALUES (1001, 1, TO_DATE('2025-11-01', 'YYYY-MM-DD'), 'Completed')",
+    // ... more orders
+];
+
+// ... continue for all tables
+oci_commit($conn);
+?>
+
+Display:
+<h1>📝 Populate Database Tables</h1>
+<div class="stats">
+    <p><strong><?php echo $totalInserted; ?></strong> new records inserted</p>
+    <p><strong><?php echo $alreadyExists; ?></strong> records already existed</p>
+</div>
+
+
+================================================================================
+5. MANAGE USERS PAGE (tables/users.php)
+================================================================================
+
+Key Features:
+- Add new users
+- Search functionality
+- View all users with edit/delete actions
+- Input validation and error handling
+
+Relevant Code:
+-------------
+<?php
+require_once '../config.php';
+
+// Handle search
+$search = isset($_GET['search']) ? trim($_GET['search']) : '';
+
+// Handle form submission (ADD USER)
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $conn = getDBConnection();
+    
+    if (isset($_POST['action']) && $_POST['action'] === 'add') {
+        $sql = "INSERT INTO Users (UserID, FirstName, LastName, Email, Phone, Role) 
+                VALUES (:v1, :v2, :v3, :v4, :v5, :v6)";
+        $stmt = oci_parse($conn, $sql);
+        oci_bind_by_name($stmt, ':v1', $_POST['user_id']);
+        oci_bind_by_name($stmt, ':v2', $_POST['first_name']);
+        oci_bind_by_name($stmt, ':v3', $_POST['last_name']);
+        oci_bind_by_name($stmt, ':v4', $_POST['email']);
+        oci_bind_by_name($stmt, ':v5', $_POST['phone']);
+        oci_bind_by_name($stmt, ':v6', $_POST['role']);
+        
+        if (@oci_execute($stmt)) {
+            oci_commit($conn);
+            $success_message = "✓ User added successfully!";
+        } else {
+            $error = oci_error($stmt);
+            if ($error['code'] == 1) {
+                $error_message = "Error: User ID already exists!";
+            }
+        }
+    }
+}
+
+// Fetch users with search filter
+$conn = getDBConnection();
+$sql = "SELECT * FROM Users
+        WHERE LOWER(FirstName) LIKE LOWER(:s)
+           OR LOWER(LastName) LIKE LOWER(:s)
+           OR LOWER(Email) LIKE LOWER(:s)
+        ORDER BY UserID";
+$stmt = oci_parse($conn, $sql);
+$search_param = '%' . $search . '%';
+oci_bind_by_name($stmt, ':s', $search_param);
+oci_execute($stmt);
+?>
+
+Display:
+<h1>👥 Manage Users</h1>
+
+<!-- Add User Form -->
+<form method="POST">
+    <input type="hidden" name="action" value="add">
+    <div class="form-group">
+        <label>User ID:</label>
+        <input type="number" name="user_id" required>
+    </div>
+    <div class="form-group">
+        <label>First Name:</label>
+        <input type="text" name="first_name" required>
+    </div>
+    <!-- ... other fields -->
+    <div class="form-group">
+        <label>Role:</label>
+        <select name="role" required>
+            <option value="Student">Student</option>
+            <option value="Staff">Staff</option>
+        </select>
+    </div>
+    <button type="submit">Add User</button>
+</form>
+
+<!-- Search Bar -->
+<form method="GET" class="search-bar">
+    <input type="text" name="search" placeholder="Search by ID, name, or email...">
+    <button type="submit">Search</button>
+</form>
+
+<!-- Users Table -->
+<table>
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Phone</th>
+            <th>Role</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        <?php while ($row = oci_fetch_array($stmt, OCI_ASSOC)): ?>
+        <tr>
+            <td><?= htmlspecialchars($row['USERID']) ?></td>
+            <td><?= htmlspecialchars($row['FIRSTNAME'] . ' ' . $row['LASTNAME']) ?></td>
+            <td><?= htmlspecialchars($row['EMAIL']) ?></td>
+            <td><?= htmlspecialchars($row['PHONE']) ?></td>
+            <td><?= htmlspecialchars($row['ROLE']) ?></td>
+            <td class="actions">
+                <a href="edit_user.php?id=<?= $row['USERID'] ?>">Edit</a>
+                <a href="delete_user.php?id=<?= $row['USERID'] ?>">Delete</a>
+            </td>
+        </tr>
+        <?php endwhile; ?>
+    </tbody>
+</table>
+
+
+================================================================================
+6. EDIT USER PAGE (tables/edit_user.php)
+================================================================================
+
+Key Features:
+- Pre-populate form with existing user data
+- Update user information
+- Input validation
+
+Relevant Code:
+-------------
+<?php
+require_once '../config.php';
+
+if (!isset($_GET['id'])) {
+    header('Location: users.php');
+    exit;
+}
+
+$conn = getDBConnection();
+$user_id = $_GET['id'];
+
+// Handle UPDATE
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $sql = "UPDATE Users 
+            SET FirstName = :fname, LastName = :lname, 
+                Email = :email, Phone = :phone, Role = :role 
+            WHERE UserID = :id";
+    $stmt = oci_parse($conn, $sql);
+    oci_bind_by_name($stmt, ':fname', $_POST['first_name']);
+    oci_bind_by_name($stmt, ':lname', $_POST['last_name']);
+    oci_bind_by_name($stmt, ':email', $_POST['email']);
+    oci_bind_by_name($stmt, ':phone', $_POST['phone']);
+    oci_bind_by_name($stmt, ':role', $_POST['role']);
+    oci_bind_by_name($stmt, ':id', $user_id);
+    oci_execute($stmt);
+    oci_commit($conn);
+    header('Location: users.php');
+    exit;
+}
+
+// Fetch existing user data
+$sql = "SELECT * FROM Users WHERE UserID = :id";
+$stmt = oci_parse($conn, $sql);
+oci_bind_by_name($stmt, ':id', $user_id);
+oci_execute($stmt);
+$user = oci_fetch_array($stmt, OCI_ASSOC);
+?>
+
+Display:
+<h1>Edit User</h1>
+<form method="POST">
+    <div class="form-group">
+        <label>First Name:</label>
+        <input type="text" name="first_name" 
+               value="<?php echo htmlspecialchars($user['FIRSTNAME']); ?>" required>
+    </div>
+    <div class="form-group">
+        <label>Last Name:</label>
+        <input type="text" name="last_name" 
+               value="<?php echo htmlspecialchars($user['LASTNAME']); ?>" required>
+    </div>
+    <div class="form-group">
+        <label>Email:</label>
+        <input type="email" name="email" 
+               value="<?php echo htmlspecialchars($user['EMAIL']); ?>" required>
+    </div>
+    <div class="form-group">
+        <label>Phone:</label>
+        <input type="text" name="phone" 
+               value="<?php echo htmlspecialchars($user['PHONE']); ?>">
+    </div>
+    <div class="form-group">
+        <label>Role:</label>
+        <select name="role" required>
+            <option value="Student" <?php echo $user['ROLE'] == 'Student' ? 'selected' : ''; ?>>Student</option>
+            <option value="Staff" <?php echo $user['ROLE'] == 'Staff' ? 'selected' : ''; ?>>Staff</option>
+        </select>
+    </div>
+    <button type="submit">Update User</button>
+    <a href="users.php" class="back-btn">Cancel</a>
+</form>
+
+
+================================================================================
+7. QUERY 1 PAGE - ORDER DETAILS (queries/query1.php)
+================================================================================
+
+Key Features:
+- Multi-table JOIN (4 tables)
+- Shows complete order breakdown
+- Calculates line totals
+
+Relevant Code:
+-------------
+<?php
+require_once '../config.php';
+
+$conn = getDBConnection();
+
+// Multi-table JOIN query
+$sql = "
+SELECT 
+    o.OrderID,
+    o.OrderDate,
+    o.Status AS OrderStatus,
+    u.UserID,
+    u.FirstName || ' ' || u.LastName AS CustomerName,
+    u.Email,
+    p.ProductID,
+    p.Name AS ProductName,
+    op.Quantity,
+    p.Price,
+    (op.Quantity * p.Price) AS LineTotal
+FROM Orders o
+INNER JOIN Users u ON o.UserID = u.UserID
+INNER JOIN Order_Product op ON o.OrderID = op.OrderID
+INNER JOIN Product p ON op.ProductID = p.ProductID
+ORDER BY o.OrderDate DESC, o.OrderID DESC
+";
+
+$statement = executeQuery($conn, $sql);
+
+// Calculate summary
+$rowCount = 0;
+$totalRevenue = 0;
+$results = [];
+
+while ($row = oci_fetch_assoc($statement)) {
+    $results[] = $row;
+    $rowCount++;
+    $totalRevenue += $row['LINETOTAL'];
+}
+?>
+
+Display:
+<h1>📊 Query 1: Orders with Customer and Product Details (JOIN)</h1>
+
+<div class="query-info">
+    <h2>Query Description</h2>
+    <p><strong>Type:</strong> MULTI-TABLE INNER JOIN Query</p>
+    <p><strong>Tables Involved:</strong> Orders, Users, Order_Product, Product</p>
+    <p><strong>Purpose:</strong> Retrieve complete order details including customer and product breakdown</p>
+</div>
+
+<div class="sql-box">
+SELECT o.OrderID, o.OrderDate, o.Status,
+       u.FirstName || ' ' || u.LastName AS CustomerName,
+       p.Name AS ProductName,
+       op.Quantity, p.Price,
+       (op.Quantity * p.Price) AS LineTotal
+FROM Orders o
+INNER JOIN Users u ON o.UserID = u.UserID
+INNER JOIN Order_Product op ON o.OrderID = op.OrderID
+INNER JOIN Product p ON op.ProductID = p.ProductID
+</div>
+
+<div class="summary">
+    <strong>Query Summary:</strong> Found <?php echo $rowCount; ?> order line items | 
+    Total Revenue: $<?php echo number_format($totalRevenue, 2); ?>
+</div>
+
+<table>
+    <thead>
+        <tr>
+            <th>Order ID</th>
+            <th>Date</th>
+            <th>Status</th>
+            <th>Customer</th>
+            <th>Product</th>
+            <th>Qty</th>
+            <th>Price</th>
+            <th>Line Total</th>
+        </tr>
+    </thead>
+    <tbody>
+        <?php foreach ($results as $row): ?>
+        <tr>
+            <td><?php echo htmlspecialchars($row['ORDERID']); ?></td>
+            <td><?php echo htmlspecialchars(substr($row['ORDERDATE'], 0, 10)); ?></td>
+            <td><?php echo htmlspecialchars($row['ORDERSTATUS']); ?></td>
+            <td><?php echo htmlspecialchars($row['CUSTOMERNAME']); ?></td>
+            <td><?php echo htmlspecialchars($row['PRODUCTNAME']); ?></td>
+            <td><?php echo htmlspecialchars($row['QUANTITY']); ?></td>
+            <td>$<?php echo number_format($row['PRICE'], 2); ?></td>
+            <td class="total">$<?php echo number_format($row['LINETOTAL'], 2); ?></td>
+        </tr>
+        <?php endforeach; ?>
+    </tbody>
+</table>
+
+
+================================================================================
+8. QUERY 2 PAGE - PRODUCT SALES ANALYSIS (queries/query2.php)
+================================================================================
+
+Key Features:
+- GROUP BY with aggregate functions
+- SUM, COUNT, AVG functions
+- Product performance metrics
+
+Relevant Code:
+-------------
+<?php
+require_once '../config.php';
+
+$conn = getDBConnection();
+
+// Aggregation query with GROUP BY
+$sql = "
+SELECT 
+    p.ProductID,
+    p.Name AS ProductName,
+    p.Price AS CurrentPrice,
+    p.StockQuantity,
+    COALESCE(SUM(op.Quantity), 0) AS TotalUnitsSold,
+    COALESCE(SUM(op.Quantity * p.Price), 0) AS TotalRevenue,
+    COUNT(DISTINCT op.OrderID) AS NumberOfOrders,
+    ROUND(AVG(r.Rating), 2) AS AvgRating,
+    COUNT(r.ReviewID) AS ReviewCount
+FROM Product p
+LEFT JOIN Order_Product op ON p.ProductID = op.ProductID
+LEFT JOIN Review r ON p.ProductID = r.ProductID
+GROUP BY p.ProductID, p.Name, p.Price, p.StockQuantity
+ORDER BY TotalRevenue DESC, TotalUnitsSold DESC
+";
+
+$statement = executeQuery($conn, $sql);
+
+// Calculate summary
+$rowCount = 0;
+$totalRevenue = 0;
+$totalUnitsSold = 0;
+$results = [];
+
+while ($row = oci_fetch_assoc($statement)) {
+    $results[] = $row;
+    $rowCount++;
+    $totalRevenue += $row['TOTALREVENUE'];
+    $totalUnitsSold += $row['TOTALUNITSSOLD'];
+}
+?>
+
+Display:
+<h1>📈 Query 2: Product Sales Analysis (Aggregation)</h1>
+
+<div class="query-info">
+    <h2>Query Description</h2>
+    <p><strong>Type:</strong> GROUP BY with Aggregation Functions</p>
+    <p><strong>Aggregate Functions Used:</strong></p>
+    <ul>
+        <li><strong>SUM(op.Quantity):</strong> Total units sold</li>
+        <li><strong>SUM(op.Quantity * p.Price):</strong> Total revenue</li>
+        <li><strong>COUNT(DISTINCT op.OrderID):</strong> Number of orders</li>
+        <li><strong>AVG(r.Rating):</strong> Average rating</li>
+        <li><strong>COUNT(r.ReviewID):</strong> Number of reviews</li>
+    </ul>
+</div>
+
+<div class="sql-box">
+SELECT p.ProductID, p.Name, p.Price,
+       COALESCE(SUM(op.Quantity), 0) AS TotalUnitsSold,
+       COALESCE(SUM(op.Quantity * p.Price), 0) AS TotalRevenue,
+       COUNT(DISTINCT op.OrderID) AS NumberOfOrders,
+       ROUND(AVG(r.Rating), 2) AS AvgRating
+FROM Product p
+LEFT JOIN Order_Product op ON p.ProductID = op.ProductID
+LEFT JOIN Review r ON p.ProductID = r.ProductID
+GROUP BY p.ProductID, p.Name, p.Price, p.StockQuantity
+ORDER BY TotalRevenue DESC
+</div>
+
+<div class="summary">
+    Total Products: <?php echo $rowCount; ?> | 
+    Total Units Sold: <?php echo number_format($totalUnitsSold); ?> | 
+    Total Revenue: $<?php echo number_format($totalRevenue, 2); ?>
+</div>
+
+<table>
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Product Name</th>
+            <th>Price</th>
+            <th>Stock</th>
+            <th>Units Sold</th>
+            <th>Revenue</th>
+            <th>Orders</th>
+            <th>Avg Rating</th>
+            <th>Reviews</th>
+        </tr>
+    </thead>
+    <tbody>
+        <?php foreach ($results as $row): ?>
+        <tr>
+            <td><?php echo htmlspecialchars($row['PRODUCTID']); ?></td>
+            <td><?php echo htmlspecialchars($row['PRODUCTNAME']); ?></td>
+            <td>$<?php echo number_format($row['CURRENTPRICE'], 2); ?></td>
+            <td><?php echo htmlspecialchars($row['STOCKQUANTITY']); ?></td>
+            <td><?php echo number_format($row['TOTALUNITSSOLD']); ?></td>
+            <td class="revenue">$<?php echo number_format($row['TOTALREVENUE'], 2); ?></td>
+            <td><?php echo htmlspecialchars($row['NUMBEROFORDERS']); ?></td>
+            <td class="rating"><?php echo $row['AVGRATING'] ? $row['AVGRATING'] . ' ⭐' : 'N/A'; ?></td>
+            <td><?php echo htmlspecialchars($row['REVIEWCOUNT']); ?></td>
+        </tr>
+        <?php endforeach; ?>
+    </tbody>
+</table>
+
+
+================================================================================
+9. QUERY 3 PAGE - HIGH-VALUE CUSTOMERS (queries/query3.php)
+================================================================================
+
+Key Features:
+- Subquery in HAVING clause
+- Identifies customers above average spending
+- Nested SELECT statement
+
+Relevant Code:
+-------------
+<?php
+require_once '../config.php';
+
+$conn = getDBConnection();
+
+// Subquery: Customers with above-average spending
+$sql = "
+SELECT 
+    u.UserID,
+    u.FirstName || ' ' || u.LastName AS CustomerName,
+    u.Email,
+    u.Role,
+    COUNT(o.OrderID) AS TotalOrders,
+    SUM(op.Quantity * p.Price) AS TotalSpent,
+    ROUND(AVG(op.Quantity * p.Price), 2) AS AvgOrderValue
+FROM Users u
+INNER JOIN Orders o ON u.UserID = o.UserID
+INNER JOIN Order_Product op ON o.OrderID = op.OrderID
+INNER JOIN Product p ON op.ProductID = p.ProductID
+GROUP BY u.UserID, u.FirstName, u.LastName, u.Email, u.Role
+HAVING SUM(op.Quantity * p.Price) > (
+    SELECT AVG(LineTotal)
+    FROM (
+        SELECT SUM(op2.Quantity * p2.Price) AS LineTotal
+        FROM Orders o2
+        INNER JOIN Order_Product op2 ON o2.OrderID = op2.OrderID
+        INNER JOIN Product p2 ON op2.ProductID = p2.ProductID
+        GROUP BY o2.OrderID
+    )
+)
+ORDER BY TotalSpent DESC
+";
+
+$statement = executeQuery($conn, $sql);
+
+// Calculate average order amount
+$avgSql = "SELECT AVG(LineTotal) AS AvgOrderAmount
+           FROM (
+               SELECT SUM(op.Quantity * p.Price) AS LineTotal
+               FROM Orders o
+               INNER JOIN Order_Product op ON o.OrderID = op.OrderID
+               INNER JOIN Product p ON op.ProductID = p.ProductID
+               GROUP BY o.OrderID
+           )";
+$avgStatement = executeQuery($conn, $avgSql);
+$avgRow = oci_fetch_assoc($avgStatement);
+$averageOrderAmount = $avgRow['AVGORDERAMOUNT'] ?? 0;
+
+// Collect results
+$rowCount = 0;
+$totalSpent = 0;
+$results = [];
+
+while ($row = oci_fetch_assoc($statement)) {
+    $results[] = $row;
+    $rowCount++;
+    $totalSpent += $row['TOTALSPENT'];
+}
+?>
+
+Display:
+<h1>👑 Query 3: High-Value Customers (Subquery)</h1>
+
+<div class="query-info">
+    <h2>Query Description</h2>
+    <p><strong>Type:</strong> Subquery in HAVING Clause</p>
+    <p><strong>Query Structure:</strong></p>
+    <ul>
+        <li><strong>Outer Query:</strong> Groups customers and calculates total spending</li>
+        <li><strong>Inner Subquery:</strong> Calculates average order amount</li>
+        <li><strong>HAVING Clause:</strong> Filters groups where TotalSpent > (SELECT AVG...)</li>
+    </ul>
+    <p><strong>Purpose:</strong> Identify VIP customers whose spending exceeds average</p>
+</div>
+
+<div class="sql-box">
+SELECT u.UserID, u.FirstName || ' ' || u.LastName AS Name,
+       COUNT(o.OrderID) AS TotalOrders,
+       SUM(op.Quantity * p.Price) AS TotalSpent
+FROM Users u
+INNER JOIN Orders o ON u.UserID = o.UserID
+INNER JOIN Order_Product op ON o.OrderID = op.OrderID
+INNER JOIN Product p ON op.ProductID = p.ProductID
+GROUP BY u.UserID, u.FirstName, u.LastName
+HAVING SUM(op.Quantity * p.Price) > (
+    SELECT AVG(LineTotal) FROM (
+        SELECT SUM(op2.Quantity * p2.Price) AS LineTotal
+        FROM Orders o2
+        INNER JOIN Order_Product op2 ON o2.OrderID = op2.OrderID
+        INNER JOIN Product p2 ON op2.ProductID = p2.ProductID
+        GROUP BY o2.OrderID
+    )
+)
+ORDER BY TotalSpent DESC
+</div>
+
+<div class="summary">
+    <strong>Average Order Amount:</strong> $<?php echo number_format($averageOrderAmount, 2); ?>
+    <br><br>
+    <strong>High-Value Customers Found:</strong> <?php echo $rowCount; ?> | 
+    <strong>Total Spent by VIPs:</strong> $<?php echo number_format($totalSpent, 2); ?>
+</div>
+
+<table>
+    <thead>
+        <tr>
+            <th>User ID</th>
+            <th>Customer Name</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Total Orders</th>
+            <th>Total Spent</th>
+            <th>Avg Order Value</th>
+            <th>Status</th>
+        </tr>
+    </thead>
+    <tbody>
+        <?php foreach ($results as $row): ?>
+        <tr>
+            <td><?php echo htmlspecialchars($row['USERID']); ?></td>
+            <td><?php echo htmlspecialchars($row['CUSTOMERNAME']); ?></td>
+            <td><?php echo htmlspecialchars($row['EMAIL']); ?></td>
+            <td><?php echo htmlspecialchars($row['ROLE']); ?></td>
+            <td><?php echo htmlspecialchars($row['TOTALORDERS']); ?></td>
+            <td class="spent">$<?php echo number_format($row['TOTALSPENT'], 2); ?></td>
+            <td>$<?php echo number_format($row['AVGORDERVALUE'], 2); ?></td>
+            <td><span class="vip-badge">VIP</span></td>
+        </tr>
+        <?php endforeach; ?>
+    </tbody>
+</table>
+
+
+================================================================================
+END OF CODE SNIPPETS
+================================================================================
